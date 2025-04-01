@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>右铣生成器簡化版1.0</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; }
+        .container, .output-container { padding: 20px; flex: 1; }
+        .output-container { background-color: #f9f9f9; border-left: 1px solid #ccc; }
+        label, input, select, button { display: block; width: 100%; margin: 10px 0; font-size: 16px; }
+        textarea { background-color: #f8f8f8; padding: 10px; border-radius: 4px; width: 100%; height: 300px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>左铣生成器簡化版1.0</h1>
+        <label for="width">寬度 (X向):</label>
+        <input type="number" id="width" name="width" step="0.001" value="50">
+        <label for="height">高度 (Y向):</label>
+        <input type="number" id="height" name="height" step="0.001" value="50">
+        <label for="roughing_allowance">粗挖預留量:</label>
+        <input type="number" id="roughing_allowance" name="roughing_allowance" step="0.001" value="5.0">
+        <label for="depths">分層深度 (使用逗號分隔):</label>
+        <input type="text" id="depths" name="depths" value="-10,-20">
+        <label for="enable_roughing">啟用粗修:</label>
+        <select id="enable_roughing">
+            <option value="true">是</option>
+            <option value="false">否</option>
+        </select>
+        <label for="rough_feed">粗修進給速度 F:</label>
+        <input type="number" id="rough_feed" name="rough_feed" step="0.1" value="80">
+        <label for="finish_feed">精修進給速度 F:</label>
+        <input type="number" id="finish_feed" name="finish_feed" step="0.1" value="400">
+        <button onclick="generateGCode()">生成 G 代碼</button>
+        <button id="copy-gcode-button">複製 G 代碼</button>
+    </div>
+    <div class="output-container">
+        <h2>生成的 G 代碼</h2>
+        <textarea id="gcode-output" readonly></textarea>
+    </div>
+    <script>
+        function generateGCode() {
+            let width = document.getElementById('width').value;
+            let height = document.getElementById('height').value;
+            let roughingAllowance = document.getElementById('roughing_allowance').value;
+            let depths = document.getElementById('depths').value.split(',');
+            let enableRoughing = document.getElementById('enable_roughing').value === 'true';
+            let roughFeed = document.getElementById('rough_feed').value;
+            let finishFeed = document.getElementById('finish_feed').value;
+
+            if (!width || !height || !roughingAllowance || depths.some(d => isNaN(d))) {
+                alert('請確認所有輸入值均為有效數字。');
+                return;
+            }
+
+            width = parseFloat(width).toFixed(3);
+            height = parseFloat(height).toFixed(3);
+            roughingAllowance = parseFloat(roughingAllowance).toFixed(3);
+            depths = depths.map(depth => parseFloat(depth).toFixed(3));
+
+            let gcode = [];
+
+            depths.forEach((depth) => {
+                gcode.push(`G1G91Z${depth} (處理深度: Z${depth})`);
+
+                if (enableRoughing) {
+                    gcode.push(`(粗修開始)`);
+                    gcode.push(`G1G91Y${roughingAllowance} F${roughFeed}`);
+                    gcode.push(`G1G91X-${(width - roughingAllowance).toFixed(3)} F${roughFeed}`);
+                    gcode.push(`G1G91Y${(height - 2 * roughingAllowance).toFixed(3)} F${roughFeed}`);
+                    gcode.push(`G1G91X${(width - roughingAllowance).toFixed(3)} F${roughFeed}`);
+                    gcode.push(`G1G91Y-${(height - roughingAllowance).toFixed(3)} F500(move)`);
+                    gcode.push(`(粗修結束)`);
+                }
+
+                gcode.push(`(精修開始)`);
+                gcode.push(`G1G91X-${width} F${finishFeed}`);
+                gcode.push(`G1G91Y${height}F${finishFeed}`);
+                gcode.push(`G1G91X${width} F${finishFeed}`);
+                gcode.push(`G1G91Y-${height}F500(move)`);
+                gcode.push(`(精修結束)`);
+            });
+
+            let gcodeOutput = document.getElementById('gcode-output');
+            gcodeOutput.value = gcode.join("\n");
+        }
+
+        document.getElementById("copy-gcode-button").onclick = function() {
+            let gcodeText = document.getElementById("gcode-output").value;
+            navigator.clipboard.writeText(gcodeText).then(function() {
+                alert("G代碼已經複製!");
+            });
+        };
+    </script>
+</body>
+</html>

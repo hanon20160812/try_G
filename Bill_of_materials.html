@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開料數量輸入</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* 让所有列按照定义的宽度进行布局 */
+}
+
+        th, td {
+    border: 1px solid black;
+    padding: 10px;
+    text-align: left;
+    white-space: nowrap; /* 防止内容换行 */
+}
+
+th.category-col, td.category-col { width: 150px; }
+th.model-col, td.model-col { width: 150px; }
+th.partNumber-col, td.partNumber-col { width: 150px; }
+th.batch-col, td.batch-col { width: 120px; }
+th.size-col, td.size-col { width: 100px; }
+th.targetQuantity-col, td.targetQuantity-col { width: 120px; }
+th.orderDate-col, td.orderDate-col { width: 150px; }
+th.action-col, td.action-col { width: 100px; }
+
+        th.category-col, td.category-col {
+            width: 30px;
+        }
+        th.model-col, td.model-col {
+            width: 10px;
+        }
+        th.partNumber-col, td.partNumber-col {
+            width: 10px;
+        }
+        th.batch-col, td.batch-col {
+            width: 20px;
+        }
+        th.size-col, td.size-col {
+            width: 10px;
+        }
+        th.targetQuantity-col, td.targetQuantity-col {
+            width: 10px;
+        }
+        th.orderDate-col, td.orderDate-col {
+            width: 30px;
+        }
+        th.action-col, td.action-col {
+            width: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+        .action-icon {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>開料數量輸入</h1>
+    <form id="materialForm">
+        <label for="category">類項</label>
+        <select id="category" name="category" onchange="updateModelOptions()">
+            <option value="公料">公料</option>
+            <option value="母料">母料</option>
+            <option value="上橫料">上橫料</option>
+            <option value="中橫料">中橫料</option>
+            <option value="下橫料">下橫料</option>
+            <option value="配件">配件</option>
+            <option value="轉角配件">轉角配件</option>
+            <option value="蓋板">蓋板</option>
+        </select>
+
+        <label for="model">型號</label>
+        <select id="model" name="model"></select>
+        <input type="text" id="modelInput" name="modelInput" class="hidden">
+
+        <label for="partNumber">料號</label>
+        <input type="text" id="partNumber" name="partNumber">
+
+        <label for="batch">批次</label>
+        <input type="text" id="batch" name="batch">
+
+        <label for="size">尺寸</label>
+        <input type="text" id="size" name="size">
+
+        <label for="targetQuantity">目標數量</label>
+        <input type="number" id="targetQuantity" name="targetQuantity">
+
+        <label for="orderDate">開單日期</label>
+        <input type="date" id="orderDate" name="orderDate">
+
+        <button type="button" onclick="addOrUpdateRow()">添加/更新資料</button>
+    </form>
+
+    <h2>
+        報表
+        <button onclick="downloadExcel()">下載報表（Excel）</button>
+    </h2>
+    <div id="reportContainer">
+        <!-- 報表將顯示在這裡 -->
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script>
+        let editIndex = -1;
+        let reportData = JSON.parse(localStorage.getItem('reportData')) || [];
+
+        const modelOptions = {
+            '公料': ['587-'],
+            '母料': ['588-'],
+            '上橫料': ['510-'],
+            '中橫料': ['476-', '473-'],
+            '下橫料': ['591-'],
+            '配件': [],
+            '轉角配件': [],
+            '蓋板': ['622-']
+        };
+
+        function updateModelOptions() {
+            const category = document.getElementById('category').value;
+            const modelSelect = document.getElementById('model');
+            const modelInput = document.getElementById('modelInput');
+            modelSelect.innerHTML = '';
+
+            if (category === '配件' || category === '轉角配件') {
+                modelSelect.classList.add('hidden');
+                modelInput.classList.remove('hidden');
+            } else {
+                modelSelect.classList.remove('hidden');
+                modelInput.classList.add('hidden');
+                modelOptions[category].forEach(option => {
+                    const newOption = document.createElement('option');
+                    newOption.value = option;
+                    newOption.textContent = option;
+                    modelSelect.appendChild(newOption);
+                });
+            }
+        }
+
+        function addOrUpdateRow() {
+            const form = document.getElementById('materialForm');
+            const formData = new FormData(form);
+            const category = formData.get('category');
+            const model = category === '配件' || category === '轉角配件' ? formData.get('modelInput') : formData.get('model');
+            const partNumber = formData.get('partNumber');
+            const batch = formData.get('batch');
+            const size = formData.get('size');
+            const targetQuantity = formData.get('targetQuantity');
+            const orderDate = formData.get('orderDate');
+
+            if (!category || !model || !partNumber || !batch || !size || !targetQuantity || !orderDate) {
+                alert('請填寫所有欄位');
+                return;
+            }
+
+            const rowData = {
+                category,
+                model,
+                partNumber,
+                batch,
+                size,
+                targetQuantity,
+                orderDate
+            };
+
+            if (editIndex === -1) {
+                reportData.push(rowData);
+            } else {
+                reportData[editIndex] = rowData;
+                editIndex = -1;
+            }
+
+            form.reset();
+            localStorage.setItem('reportData', JSON.stringify(reportData));
+            generateReport();
+        }
+
+        function generateReport() {
+            const reportContainer = document.getElementById('reportContainer');
+            reportContainer.innerHTML = '';
+
+            const sortedData = reportData.sort((a, b) => {
+                if (a.model !== b.model) return a.model.localeCompare(b.model);
+                if (a.partNumber !== b.partNumber) return a.partNumber.localeCompare(b.partNumber);
+                return a.orderDate.localeCompare(b.orderDate);
+            });
+
+            const categories = [...new Set(sortedData.map(row => row.category))];
+            categories.forEach(category => {
+                const table = document.createElement('table');
+                table.style.width = '100%';
+
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                const headers = ['類項', '型號', '料號', '批次', '尺寸', '目標數量', '開單日期', '操作'];
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.className = `${header.replace(/\s+/g, '').toLowerCase()}-col`; // 確保類名不包含空格
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+                sortedData.filter(row => row.category === category).forEach((row, index) => {
+                    const newRow = document.createElement('tr');
+                    Object.entries(row).forEach(([key, value]) => {
+                        const newCell = document.createElement('td');
+                        newCell.className = `${key}-col`;
+                        newCell.textContent = value;
+                        newRow.appendChild(newCell);
+                    });
+
+                    const actionCell = document.createElement('td');
+                    actionCell.className = 'action-col';
+                    actionCell.innerHTML = `
+                        <i class="fa-regular fa-pen-to-square action-icon" onclick="editRow(${index})"></i>
+                        <i class="fa-solid fa-trash action-icon" onclick="deleteRow(${index})"></i>
+                    `;
+                    newRow.appendChild(actionCell);
+
+                    tbody.appendChild(newRow);
+                });
+
+                table.appendChild(tbody);
+                reportContainer.appendChild(table);
+            });
+        }
+
+        function editRow(index) {
+            const row = reportData[index];
+            editIndex = index;
+
+            document.getElementById('category').value = row.category;
+            updateModelOptions();
+            if (row.category === '配件' || row.category === '轉角配件') {
+                document.getElementById('modelInput').value = row.model;
+            } else {
+                document.getElementById('model').value = row.model;
+            }
+            document.getElementById('partNumber').value = row.partNumber;
+            document.getElementById('batch').value = row.batch;
+            document.getElementById('size').value = row.size;
+            document.getElementById('targetQuantity').value = row.targetQuantity;
+            document.getElementById('orderDate').value = row.orderDate;
+        }
+
+        function deleteRow(index) {
+            reportData.splice(index, 1);
+            localStorage.setItem('reportData', JSON.stringify(reportData));
+            generateReport();
+        }
+
+        function downloadExcel() {
+            const wb = XLSX.utils.book_new();
+            const sortedData = reportData.sort((a, b) => {
+                if (a.model !== b.model) return a.model.localeCompare(b.model);
+                if (a.partNumber !== b.partNumber) return a.partNumber.localeCompare(b.partNumber);
+                return a.orderDate.localeCompare(b.orderDate);
+            });
+
+            const categories = [...new Set(sortedData.map(row => row.category))];
+            categories.forEach(category => {
+                const wsData = [
+                    ['類項', '型號', '料號', '批次', '尺寸', '目標數量', '開單日期']
+                ];
+                sortedData.filter(row => row.category === category).forEach(row => {
+                    wsData.push([
+                        row.category, row.model, row.partNumber, row.batch, row.size, row.targetQuantity, row.orderDate
+                    ]);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, category);
+            });
+
+            XLSX.writeFile(wb, '報表.xlsx');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateModelOptions();
+            generateReport();
+        });
+    </script>
+</body>
+</html>

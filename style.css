@@ -1,0 +1,282 @@
+/* 原本的 CSS 保持不變 */
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  height: calc(100vh - 40px); /* 減去上下的 margin 高度 */
+  margin: 20px 0; /* 上下距離 20px，左右距離 0 */
+  position: relative; /* 滾動用 */
+}
+
+html {
+  scroll-behavior: smooth;  /* 使網頁滾動 */
+}
+
+/* 側邊欄 */
+.icon-text {
+  margin-left: 10px; /* 设置左边距以创建空间 */
+  font-size: 20px; 
+}
+
+ion-icon {
+  font-size: 20px; 
+  margin-right: 10px; 
+  vertical-align: middle;
+}
+
+.sidebar {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 20%;
+  height: 100vh; /* 容器高度自動適應內容 */
+  background-color: #fff1f1;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 1000;
+  flex-direction: column;/* 鏈接和圖片會垂直排列 */
+}
+
+/* SVG 图标的颜色 */
+#sidebar svg {
+  fill: #d8d8f5;
+}
+
+/* 鼠标悬停时的效果 */
+#sidebar a {
+  color: #787b7d; /* 文字颜色 */
+  text-decoration: none; /* 去掉下划线 */
+}
+
+/* 鼠标悬停时 */
+#sidebar a:hover {
+  color: #9994f6; /* 悬停时的文字颜色 */
+}
+
+/* 点击时的效果 */
+#sidebar a.active {
+  color: #9994f6; /* 激活时的文字颜色 */
+  background-color: #9994f6; /* 激活背景色 */
+  border-left: 5px solid #9994f6; /* 左侧边框 */
+}
+
+/* 按钮变化样式 */
+.btn-change {
+  display: none; /* 默认隐藏 */
+}
+
+/* Scrollspy 激活时按钮样式 */
+.active-button {
+  display: inline-block; /* 显示按钮 */
+  background-color: #9994f6;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.img-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%; /* 容器寬度設為全螢幕 */
+  height: auto; /* 容器高度自動適應內容 */
+  overflow: hidden; /* 確保容器不會溢出 */
+  padding-bottom: 20px; /* 與底部的距離 */
+}
+
+.img-container img {
+  max-width: 100%; /* 確保圖片不超出容器寬度 */
+  max-height: calc(100vh - 20px); /* 減去底部間距的高度 */
+  width: auto; /* 保持寬度比例 */
+  height: auto; /* 保持高度比例 */
+  object-fit: contain; /* 確保完整顯示圖片，無裁切 */
+}
+
+.content {
+  padding: 20px; /* 内容内边距 */
+  margin-left: 100px;
+}
+
+/* 表單 */
+fieldset {
+  border: 1px solid #8d8c8c !important;  /* 邊框樣式回到默認 */
+  padding: 10px !important;                      /*默認內邊距 */
+  font-size: 16px !important;
+}
+
+legend {
+  font-size: 14px !important;  /* 或者使用你想要的字體大小 */
+}
+
+.N_type {
+  font-size: 0.9em !important;
+  font-weight: bold !important;
+  color: #ffffff !important;
+  padding: 3px 6px !important;
+  background-color: #E6A4B4 !important;
+  text-align: center !important;
+  display: block !important;
+  width: 80% !important;
+}
+
+.form-container {
+  display: flex;
+}
+
+.form-area {
+  width: 300px;
+  height: auto; /* 高度自動調整 */
+  overflow-wrap: break-word; /* 如果內容太長，則進行換行 */
+  transition: height 0.3s ease; /* 添加平滑过渡效果 */
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  background-color: #fff; /* 表单区域背景色 */
+  border-radius: 5px; /* 圆角 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* 阴影 */
+}
+
+.form-area h2 {
+  text-align: center;
+}
+
+.form-group {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px !important;
+}
+
+.form-group label {
+  width: 40%;
+  text-align: right;
+  margin-right: 10px;
+  font-size: 14px !important;
+}
+
+.form-group input,
+.form-group select {
+  width: 55%;
+  font-size: 14px !important;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap; /* 允許換行 */
+  width: 60%; /* 調整寬度以保持對齊 */
+}
+
+.checkbox-group label {
+  margin-right: 10px; /* 複選框之間的間距 */
+  display: inline-block; /* 在同一行顯示 */
+}
+
+.submit-button {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.submit-button button {
+  padding: 8px 16px;
+  font-size: 16px;
+}
+
+.result {
+  margin-left: 20px;
+  margin-right: 10px;
+  width: 280px;
+  white-space: pre-wrap; /* 保持換行 */
+  border: 1px solid #000;
+  padding: 10px;
+  height: auto; /* 高度自動調整 */
+  overflow-wrap: break-word; /* 如果內容太長，則進行換行 */
+  border-radius: 8px; /* 設定圓角 */
+  transition: height 0.2s; /* 添加過渡效果 */
+}
+
+/* 按鈕 */
+.button-container {
+  text-align: center; /* 將按鈕置中 */
+  margin-top: 20px;   /* 按鈕與上方內容的間距 */
+}
+
+.black-border-button {
+  border: 1px solid black; /* 黑色邊框 */
+  background-color: white; /* 白色背景 */
+  color: black; /* 黑色文字 */
+  padding: 5px 10px; /* 內距 */
+  font-size: 16px; /* 字體大小 */
+  cursor: pointer; /* 滑鼠指標變成手形 */
+  border-radius: 3px; /* 圓角 */
+  transition: background-color 0.3s, color 0.3s; /* 動態效果 */
+  margin-bottom: 20px; /* 設定下邊距 */
+  text-decoration: none; /* 去掉默认的下划线 */
+  text-align: center; /* 將按鈕置中 */
+}
+
+.black-border-button:hover {
+  background-color: #E6A4B4; /* 滑鼠懸停時的背景 */
+  color: rgb(255, 255, 255); /* 滑鼠懸停時的文字顏色 */
+  text-decoration: none; /* 去掉默认的下划线 */
+}
+
+#code-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.highlight-yellow {
+  background-color: #FFD09B !important;
+}
+
+.highlight-green {
+  background-color: lightgreen !important;
+}
+
+.highlight-purple { 
+  background-color: #9994f6 !important;
+}
+
+.highlight-pink { 
+  background-color: #E6A4B4 !important;
+}
+
+.coordinate-box {
+  display: inline-block !important; /* 让 span 变成一个可以设置宽高的块状元素 */
+  padding: 2px 2px !important; /* 增加内边距，使框不贴着文字 */
+  border: 1px solid #252525 !important; /* 设置边框颜色和粗细 */
+  border-radius: 5px !important; /* 设置圆角（可选） */
+  background-color: #f0f0f0 !important; /* 设置背景色（可选） */
+}
+
+/* 新增：側邊欄切換按鈕樣式 */
+.sidebar-toggle {
+  display: none;
+}
+
+/* 畫面寬度小於 768px 時，自動隱藏側邊欄並顯示切換按鈕，同時調整內容區 */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+  .sidebar-toggle {
+    display: block;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background-color: #E6A4B4;
+    border: none;
+    color: #fff;
+    padding: 10px;
+    border-radius: 3px;
+    z-index: 1100;
+    cursor: pointer;
+  }
+  .content {
+    margin-left: 0;
+    padding-top: 60px; /* 為了避免與切換按鈕重疊 */
+  }
+}

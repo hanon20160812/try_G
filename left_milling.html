@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>左铣生成器簡化版1.0</title>
+
+    <!-- 引入 Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .form-area {
+            width: 300px;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            /* 每行之间的间距 */
+        }
+
+        .form-area h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-area label {
+            display: inline-block;
+            width: 120px;
+            /* 固定 label 的宽度 */
+            text-align: right;
+            /* 文字靠右对齐 */
+            margin-right: 10px;
+            /* 与 input 的间距 */
+        }
+
+        .form-area input,
+        .form-area select,
+        .form-area button {
+            flex: 1;
+            /* 输入框或按钮自动填满剩余宽度 */
+        }
+
+        .form-area .form-row {
+            display: flex;
+            align-items: center;
+            /* 垂直居中对齐 */
+        }
+
+
+
+
+
+        label,
+        input,
+        select,
+        button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .output-container {
+            position: relative;
+            display: inline-block;
+            flex: 1;
+            margin-left: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+
+        }
+
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #000000;
+            border-radius: 8px;
+            resize: none;
+            background-color: #f8f8f8;
+            padding: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            resize: none;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            background: none;
+            border: none;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            color: #999;
+            text-align: right;
+            background-color: #fff;
+            width: 70%;
+            height: 20px;
+            /* 设置按钮文字右对齐 */
+        }
+
+        .copy-btn:hover {
+            color: #8f84d3;
+        }
+
+        .copy-btn.disabled {
+            color: #999;
+            cursor: not-allowed;
+            text-align: right;
+            /* 设置按钮文字右对齐 */
+        }
+
+
+        .textarea-container {
+            position: relative;
+            width: 100%;
+            height: auto;
+        }
+
+        /* 固定文字样式 */
+        .fixed-label {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            font-size: 12px;
+            color: #666;
+            pointer-events: none;
+            /* 禁止点击影响 */
+
+            padding: 0 5px;
+            z-index: 1;
+            /* 确保位于文本框上层 */
+        }
+
+        /* 文本框样式 */
+        #copyText {
+            width: 100%;
+            height: 150px;
+            /* 可根据需要调整高度 */
+            border: 1px solid #000;
+            border-radius: 8px;
+            padding: 30px 10px 10px;
+            /* 上方预留空间避免覆盖 */
+            box-sizing: border-box;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: none;
+
+        }
+
+
+        .textarea-container {
+            position: relative;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .fixed-label {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            font-size: 12px;
+            color: #666;
+            pointer-events: none;
+            background-color: #fff;
+            width: 30%;
+            height: 20px;
+            padding: 0 5px;
+            z-index: 1;
+        }
+
+        #copyText {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #000;
+            border-radius: 8px;
+            padding: 30px 10px 10px;
+            box-sizing: border-box;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: none;
+
+        }
+
+        .generate-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .generate-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .spacer {
+            height: 1000px;
+            /* 模拟页面滚动内容 */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="form-area">
+            <h2>左铣生成器簡化版1.0</h2>
+
+            <div>
+                <img src="img\left_milling.jpg" alt="left_milling" height="220vh">
+            </div> 
+
+            <div class="form-row">
+                <label for="width">寬度 (X向):</label>
+                <input type="number" id="width" name="width" step="0.001" value="100">
+            </div>
+            <div class="form-row">
+                <label for="height">高度 (Y向):</label>
+                <input type="number" id="height" name="height" step="0.001" value="50">
+            </div>
+            <div class="form-row">
+                <label for="roughing_allowance">粗挖預留量:</label>
+                <input type="number" id="roughing_allowance" name="roughing_allowance" step="0.001" value="6">
+            </div>
+            <div class="form-row">
+                <label for="depths">每層Z深度(G90) <br>(使用逗號分隔):</label>
+                <input type="text" id="depths" name="depths" value="-5,-10">
+            </div>
+
+
+            <div class="form-row">
+                <label>啟用粗修:</label>
+
+                <input type="radio" name="enable_roughing" id="enableRoughingYes" value="true" checked>
+                <label style="margin-left: -100px;" for="enableRoughingYes">是</label>
+
+                <input type="radio" name="enable_roughing" id="enableRoughingNo" value="false">
+                <label style="margin-left: -100px;" for="enableRoughingNo">否</label>
+            </div>
+
+
+
+
+
+
+            <div class="form-row">
+                <label for="rough_feed">粗修進給速度 F:</label>
+                <input type="number" id="rough_feed" name="rough_feed" step="0.1" value="120">
+            </div>
+            <div class="form-row">
+                <label for="finish_feed">精修進給速度 F:</label>
+                <input type="number" id="finish_feed" name="finish_feed" step="0.1" value="120">
+            </div>
+
+            <div class="form-row">
+                <label for="rapid_feed">快速進給速度 F:</label>
+                <input type="number" id="rapid_feed" name="rapid_feed" step="0.1" value="400">
+            </div>
+
+
+            <div class="form-row">
+                <button onclick="generateGCode()">生成 G 代碼</button>
+            </div>
+
+
+        </div>
+
+        <div class="output-container">
+            <label class="fixed-label">生成的 G 代碼</label>
+            <textarea id="copyText" readonly></textarea>
+            <button class="copy-btn" id="copyButton" onclick="copyText()">
+                <i class="bi bi-clipboard"></i> <span>COPY</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function copyText() {
+            const copyText = document.getElementById("copyText");
+            const copyButton = document.getElementById("copyButton");
+
+            // 复制内容
+            navigator.clipboard.writeText(copyText.value).then(() => {
+                // 更新按钮显示内容
+                copyButton.innerHTML = `<i class="bi bi-heart-fill"></i> <span>複製好囉 ٩(๑•̀ω•́๑)۶</span>`;
+                copyButton.disabled = true;
+                copyButton.classList.add("disabled");
+
+                // 2秒后恢复按钮
+                setTimeout(() => {
+                    copyButton.innerHTML = `<i class="bi bi-clipboard"></i> <span>COPY</span>`;
+                    copyButton.disabled = false;
+                    copyButton.classList.remove("disabled");
+                }, 2000);
+            }).catch(() => {
+                alert("複製失敗，請手動複製！");
+            });
+        }
+
+        function adjustTextareaHeight() {
+            const formArea = document.querySelector('.form-area');
+            const gcodeOutput = document.getElementById('copyText');
+            gcodeOutput.style.height = `${formArea.offsetHeight}px`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            adjustTextareaHeight();
+        });
+
+        window.addEventListener('resize', adjustTextareaHeight);
+
+        function generateGCode() {
+            let width = document.getElementById('width').value;
+            let height = document.getElementById('height').value;
+            let roughingAllowance = document.getElementById('roughing_allowance').value;
+            let depths = document.getElementById('depths').value.split(',');
+            let enableRoughing = document.querySelector('input[name="enable_roughing"]:checked').value === 'true';
+            let roughFeed = document.getElementById('rough_feed').value;
+            let finishFeed = document.getElementById('finish_feed').value;
+            let rapidFeed = document.getElementById('rapid_feed').value;
+            
+
+
+            if (!width || !height || !roughingAllowance || depths.some(d => isNaN(d))) {
+                alert('請確認所有輸入值均為有效數字。');
+                return;
+            }
+
+            // 示例代码逻辑...
+            let gCode = `啟用粗修: ${enableRoughing ? '是' : '否'}\n`;
+            gCode += `寬度: ${width}, 高度: ${height}\n`;
+            gCode += `粗挖預留量: ${roughingAllowance}\n`;
+            gCode += `進給速度 (粗修): ${roughFeed}, (精修): ${finishFeed}\n`;
+            gCode += `快速進給速度 F: ${rapidFeed}\n`;
+
+            document.getElementById('copyText').value = gCode;
+
+
+
+            width = parseFloat(width).toFixed(3);
+            height = parseFloat(height).toFixed(3);
+            roughingAllowance = parseFloat(roughingAllowance).toFixed(3);
+            depths = depths.map(depth => parseFloat(depth).toFixed(3));
+
+            let gcode = [];
+
+            depths.forEach((depth) => {
+                gcode.push(`G1G90Z${depth} (處理深度: Z${depth})`);
+
+                if (enableRoughing) {
+                    gcode.push(`(粗修開始)`);
+                    gcode.push(`G1G91Y-${roughingAllowance} F${roughFeed}`);
+                    gcode.push(`G1G91X${(width - roughingAllowance).toFixed(3)} F${roughFeed}`);
+                    gcode.push(`G1G91Y-${(height - 2 * roughingAllowance).toFixed(3)} F${roughFeed}`);
+                    gcode.push(`G1G91X-${(width - roughingAllowance).toFixed(3)} F${roughFeed}`);
+                    gcode.push(`G1G91Y${(height - roughingAllowance).toFixed(3)} F${rapidFeed}(move)`);
+                    gcode.push(`(粗修結束)`);
+                }
+
+                gcode.push(`(精修開始)`);
+                gcode.push(`G1G91X${width} F${finishFeed}`);
+                gcode.push(`G1G91Y-${height}F${finishFeed}`);
+                gcode.push(`G1G91X-${width} F${finishFeed}`);
+                gcode.push(`G1G91Y${height}F${rapidFeed}(move)`);
+
+                gcode.push(`(精修結束)`);
+            });
+
+            const copyText = document.getElementById('copyText');
+            copyText.value = gcode.join('\n');
+        }
+
+
+
+    </script>
+
+
+
+
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>
