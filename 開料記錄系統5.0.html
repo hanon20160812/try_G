@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <title>開料記錄系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            darkblue: {
+              900: '#0f172a', // 深藍色底色
+              800: '#1e293b',
+              700: '#334155'
+            },
+            accent: {
+              yellow: '#fbbf24', // 黃色輔色
+              hover: '#f59e0b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/lucide-icons@0.263.0/dist/lucide.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide-icons@0.263.0/dist/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    /* 確保操作按鈕所在的 table cell 內容不被截斷 */
+    td {
+      overflow: visible;
+    }
+
+    /* 欄位聚焦時變成黃色邊框 */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #fbbf24 !important;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3) !important;
+    }
+
+    /* 下拉選單選項 hover 效果 */
+    select option:hover,
+    select option:focus {
+      background-color: #fbcfe8 !important;
+    }
+
+    /* 搜尋欄位搜尋圖標 */
+    .search-container {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+    }
+
+    .search-hint {
+      font-size: 12px;
+      margin-top: 2px;
+      color: #6b7280;
+    }
+
+    /* 深色模式下的顏色修改 */
+    .dark body {
+      background-color: #0f172a;
+    }
+
+    .dark .dark\:bg-darkblue-900 {
+      background-color: #0f172a;
+    }
+
+    .dark .dark\:bg-darkblue-800 {
+      background-color: #1e293b;
+    }
+
+    .dark .dark\:bg-darkblue-700 {
+      background-color: #334155;
+    }
+
+    .dark .dark\:border-accent-yellow {
+      border-color: #fbbf24;
+    }
+
+    .dark .dark\:text-accent-yellow {
+      color: #fbbf24;
+    }
+
+    /* 粉色聚焦效果 */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #ec4899 !important;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.3) !important;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-darkblue-900 dark:text-gray-200">
+  <!-- 新增 nav 標籤，包含標題和按鈕 -->
+  <nav class="bg-white dark:bg-darkblue-800 shadow-md py-4 px-6 fixed top-0 left-0 right-0 z-10">
+    <div class="container mx-auto max-w-screen-2xl flex justify-between items-center">
+      <h1 class="text-2xl font-bold">開料記錄系統</h1>
+      <div class="flex space-x-4">
+        <!-- 深色模式切換按鈕 -->
+        <button id="darkModeToggle" class="flex items-center justify-center px-4 py-2 rounded-lg 
+                      bg-gray-200 dark:bg-darkblue-700 hover:bg-gray-300 text-gray-700
+                      dark:hover:bg-slate-600 transition-colors duration-200">
+          <!-- Sun icon for dark mode -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="hidden dark:block h-5 w-5 dark:text-accent-yellow" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <!-- Moon icon for light mode -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="block dark:hidden h-5 w-5" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+
+        <button id="togglePageBtn" onclick="togglePage()" style="background-color: #ec4899;"
+          class="text-white px-4 py-2 rounded hover:opacity-90 dark:bg-accent-yellow dark:text-darkblue-900 dark:hover:bg-accent-hover font-medium">
+          查看統計
+        </button>
+
+        <!-- EXCEL導入按鈕只在記錄頁面顯示 -->
+        <div id="importActions">
+          <button onclick="document.getElementById('importFile').click()"
+            class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 dark:bg-accent-yellow dark:text-darkblue-900 dark:hover:bg-accent-hover">
+            EXCEL導入
+          </button>
+          <input type="file" id="importFile" accept=".xlsx, .xls" style="display:none" onchange="importExcel(event)">
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主容器，增加上方間距 -->
+  <div class="container mx-auto max-w-screen-2xl px-20 py-20 mt-16">
+    <!-- 記錄填寫頁面 -->
+    <div id="mainPage" class="block">
+      <div class="bg-white dark:bg-darkblue-800 p-4 rounded-lg shadow-md mb-4">
+        <div id="editStatus" class="text-yellow-600 dark:text-accent-yellow mb-4 hidden">
+          目前正在編輯記錄
+        </div>
+        <form id="recordForm" class="space-y-4">
+
+
+
+          <div class="grid grid-cols-2 gap-4">
+            <select id="category"
+              class="border p-2 rounded dark:bg-darkblue-700 dark:text-gray-200 focus:border-yellow-400" required>
+              <option value="">選擇類項</option>
+              <option value="公料">公料</option>
+              <option value="母料">母料</option>
+              <option value="上橫料">上橫料</option>
+              <option value="中橫料">中橫料</option>
+              <option value="下橫料">下橫料</option>
+              <option value="蓋板">蓋板</option>
+              <option value="配件">配件</option>
+              <option value="常用配件">常用配件</option>
+              <option value="轉角">轉角</option>
+              <option value="格柵">格柵</option>
+              <option value="欄杆">欄杆</option>
+            </select>
+            <div class="flex items-center">
+              <input type="text" id="modelNumber" placeholder="型號"
+                class="border p-2 rounded w-1/2 mr-2 dark:bg-darkblue-700 dark:text-gray-200" required>
+              <span class="mx-2">-</span>
+              <input type="text" id="partNumber" placeholder="料號"
+                class="border p-2 rounded w-1/2 dark:bg-darkblue-700 dark:text-gray-200" required>
+            </div>
+            <input type="text" id="batchNumber" placeholder="批次"
+              class="border p-2 rounded dark:bg-darkblue-700 dark:text-gray-200" required>
+            <div class="flex items-center space-x-4">
+              <div class="flex flex-col flex-1">
+                <label for="recordDate" class="text-sm mb-1">開料日期</label>
+                <input type="date" id="recordDate" class="border p-2 rounded dark:bg-darkblue-700 dark:text-gray-200"
+                  required>
+              </div>
+              <div class="flex flex-col flex-1">
+                <label for="completionDate" class="text-sm mb-1">完成日期</label>
+                <input type="date" id="completionDate"
+                  class="border p-2 rounded dark:bg-darkblue-700 dark:text-gray-200">
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="grid grid-cols-2 gap-4">
+            <input type="text" id="size" placeholder="尺寸"
+              class="border p-2 rounded dark:bg-darkblue-700 dark:text-gray-200">
+            <input type="number" id="quantity" placeholder="數量"
+              class="border p-2 rounded dark:bg-darkblue-700 dark:text-gray-200" required>
+          </div>
+          <textarea id="remarks" placeholder="備註"
+            class="w-full border p-2 rounded dark:bg-darkblue-700 dark:text-gray-200"></textarea>
+          <div class="flex justify-end space-x-2">
+            <button type="submit" style="background-color: #ec4899;"
+              class="text-white px-4 py-2 rounded hover:opacity-90 dark:bg-accent-yellow dark:text-darkblue-900 dark:hover:bg-accent-hover font-medium">
+              新增記錄
+            </button>
+            <button type="reset"
+              class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
+              清空
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 記錄列表標題和刪除按鈕在同一行 -->
+      <div class="bg-white dark:bg-darkblue-800 p-4 rounded-lg shadow-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">記錄列表</h2>
+          <button onclick="deleteSelectedRecords()"
+            class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors duration-200">
+            刪除所選
+          </button>
+        </div>
+
+        <!-- 記錄列表表格 -->
+        <table id="recordTable" class="w-full border-collapse">
+          <thead>
+            <tr class="bg-gray-200 dark:bg-darkblue-700">
+              <th class="border p-2 text-center">
+                <input type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+              </th>
+              <th class="border p-2">類項</th>
+              <th class="border p-2">型號-料號</th>
+              <th class="border p-2">批次</th>
+              <th class="border p-2">數量</th>
+              <th class="border p-2">開料日期</th>
+              <th class="border p-2">完成日期</th>
+              <th class="border p-2">操作</th>
+            </tr>
+          </thead>
+          <tbody id="recordList"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 統計頁面 -->
+    <div id="statisticsPage" class="hidden">
+      <div class="bg-white dark:bg-darkblue-800 p-4 rounded-lg shadow-md">
+        <div class="flex flex-col lg:flex-row">
+          <!-- 統計表單區 -->
+          <div class="flex-1 p-2">
+            <div class="flex justify-between items-center mb-4">
+              <h1 class="text-2xl font-bold">開料數量統計</h1>
+              <div class="flex items-center">
+                <button onclick="downloadExcel()"
+                  class="text-pink-500 dark:text-accent-yellow hover:bg-pink-100 dark:hover:bg-darkblue-700 p-2 rounded group relative mr-2"
+                  title="下載EXCEL">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-download">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" x2="12" y1="15" y2="3" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mb-4">
+              <label for="modelSearch" class="block mb-2">搜尋型號（多選）</label>
+              <!-- 修改後的搜尋欄位，添加放大鏡圖標 -->
+              <div class="search-container">
+                <input type="text" id="modelSearch" placeholder="輸入型號"
+                  class="border p-2 rounded w-full dark:bg-darkblue-700 dark:text-gray-200 pr-10"
+                  onkeyup="handleModelSearchEnter(event)">
+                <div class="search-icon cursor-pointer" onclick="searchModel()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-search hover:text-custom-pink transition-colors">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+              </div>
+              <!-- 搜尋提示文字 -->
+              <div class="search-hint dark:text-gray-400">
+                多個型號用逗號分隔（例如：587,588）
+              </div>
+            </div>
+            <div id="statisticsResult" class="mt-4">
+              <!-- 統計結果顯示於此 -->
+            </div>
+          </div>
+          <!-- 類項數量分佈圖表區 -->
+          <div class="flex-1 p-2">
+            <!-- 標題與返回全部資料按鈕排列在同一行 -->
+            <div class="flex justify-between items-center mb-8">
+              <h1 class="text-2xl font-bold">類項數量分佈</h1>
+              <button id="backAllBtn" onclick="resetStatistics()" style="background-color: #ec4899;"
+                class="text-white px-4 py-2 rounded hover:opacity-90 dark:bg-accent-yellow dark:text-darkblue-900 dark:hover:bg-accent-hover hidden">
+                返回全部資料
+              </button>
+            </div>
+            <div id="chartArea">
+              <!-- 產生的圖表 HTML 將放於此 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 回到頂部按鈕 -->
+  <button id="backToTop" style="background-color: #ec4899;" class="fixed bottom-8 right-8 p-3 rounded-full 
+               text-white shadow-lg hover:opacity-90 dark:bg-accent-yellow dark:text-darkblue-900 dark:hover:bg-accent-hover transition-all 
+               duration-300 opacity-0 invisible" onclick="scrollToTop()">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+    </svg>
+  </button>
+
+  <script>
+    // 深色模式設定
+    function initDarkMode() {
+      // 檢查本地存儲中的深色模式設定
+      const darkMode = localStorage.getItem('darkMode');
+
+      // 如果有保存的設定，應用它
+      if (darkMode === 'true') {
+        document.documentElement.classList.add('dark');
+      } else if (darkMode === 'false') {
+        document.documentElement.classList.remove('dark');
+      }
+      // 如果沒有設定，檢查系統預設
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('darkMode', 'true');
+      } else {
+        localStorage.setItem('darkMode', 'false');
+      }
+
+      // 添加切換按鈕事件監聽器
+      const darkModeToggle = document.getElementById('darkModeToggle');
+      darkModeToggle.addEventListener('click', () => {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('darkMode', isDark.toString());
+      });
+
+      // 監聽系統主題變化
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (localStorage.getItem('darkMode') === null) {
+          document.documentElement.classList.toggle('dark', e.matches);
+          localStorage.setItem('darkMode', e.matches.toString());
+        }
+      });
+    }
+
+    // 定義類項的優先排序
+    const CATEGORY_PRIORITY = {
+      '公料': 1,
+      '母料': 2,
+      '上橫料': 3,
+      '中橫料': 4,
+      '下橫料': 5,
+      '蓋板': 6,
+      '配件': 7,
+      '常用配件': 8,
+      '轉角': 9,
+      '格柵': 10,
+      '欄杆': 11
+    };
+
+    let records = JSON.parse(localStorage.getItem('cuttingRecords')) || [];
+    let editingIndex = -1;
+    let filteredRecords = records;
+
+    const form = document.getElementById('recordForm');
+    const recordList = document.getElementById('recordList');
+    const mainPage = document.getElementById('mainPage');
+    const statisticsPage = document.getElementById('statisticsPage');
+    const statisticsResult = document.getElementById('statisticsResult');
+    const importActions = document.getElementById('importActions');
+
+    // Excel 日期數值轉換函數
+    function excelDateToJSDate(excelSerial) {
+      let date = new Date((excelSerial - 25569) * 86400000);
+      return date.toISOString().split('T')[0];
+    }
+
+    // EXCEL 導入函式（避免重複匯入資料）
+    function importExcel(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        // 預期 Excel 欄位名稱：類項, 型號, 料號, 批次, 尺寸, 數量, 開料日期, 完成日期, 備註
+        jsonData.forEach(item => {
+          // 處理開料日期
+          let recordDate = "未填寫";
+          if (item["開料日期"]) {
+            if (!isNaN(item["開料日期"])) {
+              recordDate = excelDateToJSDate(item["開料日期"]);
+            } else {
+              recordDate = item["開料日期"];
+            }
+          }
+
+          // 處理完成日期
+          let completionDate = "未填寫";
+          if (item["完成日期"]) {
+            if (!isNaN(item["完成日期"])) {
+              completionDate = excelDateToJSDate(item["完成日期"]);
+            } else {
+              completionDate = item["完成日期"];
+            }
+          }
+
+          // 判斷是否重複（以類項、型號、料號、批次與開料日期作為唯一性判斷）
+          const exists = records.some(r =>
+            r.category === (item["類項"] || "") &&
+            r.modelNumber === (item["型號"] || "") &&
+            r.partNumber === (item["料號"] || "") &&
+            r.batchNumber === (item["批次"] || "") &&
+            r.recordDate === recordDate
+          );
+
+          if (!exists && (item["類項"] || item["型號"])) {
+            records.push({
+              category: item["類項"] || "",
+              modelNumber: item["型號"] || "",
+              partNumber: item["料號"] || "",
+              batchNumber: item["批次"] || "",
+              size: item["尺寸"] || "",
+              quantity: item["數量"] ? String(item["數量"]) : "",
+              recordDate: recordDate,
+              completionDate: completionDate,
+              remarks: item["備註"] || ""
+            });
+          }
+        });
+        localStorage.setItem('cuttingRecords', JSON.stringify(records));
+        updateRecordList();
+        event.target.value = "";
+        alert("EXCEL 資料導入成功！");
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 渲染記錄列表（包含多選框）
+    function updateRecordList() {
+      records = JSON.parse(localStorage.getItem('cuttingRecords')) || [];
+      const sortedRecords = records.sort((a, b) => {
+        const priA = CATEGORY_PRIORITY[a.category] || 99;
+        const priB = CATEGORY_PRIORITY[b.category] || 99;
+        if (priA !== priB) return priA - priB;
+        const modelPartA = `${a.modelNumber}-${a.partNumber}`;
+        const modelPartB = `${b.modelNumber}-${b.partNumber}`;
+        return modelPartA.localeCompare(modelPartB);
+      });
+      recordList.innerHTML = "";
+      sortedRecords.forEach((record, index) => {
+        recordList.innerHTML += `
+        <tr>
+      <td class="border p-2 text-center">
+        <input type="checkbox" class="record-checkbox" data-index="${index}">
+      </td>
+      <td class="border p-2">${record.category}</td>
+      <td class="border p-2">${record.modelNumber}-${record.partNumber}</td>
+      <td class="border p-2">${record.batchNumber}</td>
+      <td class="border p-2">${record.quantity}</td>
+      <td class="border p-2">${record.recordDate}</td>
+      <td class="border p-2">${record.completionDate}</td>
+            <td class="border p-2 text-center">
+              <button onclick="editRecord(${index})"
+                      class="text-green-500 mr-2 hover:bg-green-100 dark:hover:bg-darkblue-700 px-2 py-1 rounded"
+                      title="編輯">
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="none" 
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                     class="lucide lucide-edit-2">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                  <path d="m15 5 4 4"/>
+                </svg>
+              </button>
+              <button onclick="deleteRecord(${index})"
+                      class="text-red-500 hover:bg-red-100 dark:hover:bg-darkblue-700 px-2 py-1 rounded"
+                      title="刪除">
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="none" 
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                     class="lucide lucide-trash-2">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" x2="10" y1="11" y2="17"/>
+                  <line x1="14" x2="14" y1="11" y2="17"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // 單筆刪除
+    function deleteRecord(index) {
+      records.splice(index, 1);
+      localStorage.setItem('cuttingRecords', JSON.stringify(records));
+      updateRecordList();
+    }
+
+    // 編輯記錄
+    function editRecord(index) {
+      const record = records[index];
+      document.getElementById('category').value = record.category;
+      document.getElementById('modelNumber').value = record.modelNumber;
+      document.getElementById('partNumber').value = record.partNumber;
+      document.getElementById('batchNumber').value = record.batchNumber;
+      document.getElementById('recordDate').value = record.recordDate;
+      document.getElementById('quantity').value = record.quantity;
+      document.getElementById('size').value = record.size;
+      document.getElementById('remarks').value = record.remarks;
+      document.getElementById('completionDate').value = record.completionDate;
+      editingIndex = index;
+      form.querySelector('button[type="submit"]').textContent = '更新記錄';
+      document.getElementById('editStatus').classList.remove('hidden');
+    }
+
+    // 刪除選取的多筆記錄
+    function deleteSelectedRecords() {
+      const checkboxes = document.querySelectorAll(".record-checkbox:checked");
+      if (checkboxes.length === 0) {
+        alert("請先選擇要刪除的記錄");
+        return;
+      }
+      const indices = Array.from(checkboxes)
+        .map(cb => parseInt(cb.dataset.index))
+        .sort((a, b) => b - a);
+      indices.forEach(idx => {
+        records.splice(idx, 1);
+      });
+      localStorage.setItem('cuttingRecords', JSON.stringify(records));
+      updateRecordList();
+    }
+
+    // 全選/全不選切換
+    function toggleSelectAll() {
+      const selectAll = document.getElementById("selectAll").checked;
+      const checkboxes = document.querySelectorAll(".record-checkbox");
+      checkboxes.forEach(cb => cb.checked = selectAll);
+    }
+
+    // 表單送出
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const newRecord = {
+        category: document.getElementById('category').value,
+        modelNumber: document.getElementById('modelNumber').value,
+        partNumber: document.getElementById('partNumber').value,
+        batchNumber: document.getElementById('batchNumber').value,
+        recordDate: document.getElementById('recordDate').value,
+        quantity: document.getElementById('quantity').value,
+        size: document.getElementById('size').value,
+        remarks: document.getElementById('remarks').value,
+        completionDate: document.getElementById('completionDate').value
+      };
+      if (editingIndex === -1) {
+        records.push(newRecord);
+      } else {
+        records[editingIndex] = newRecord;
+        editingIndex = -1;
+        form.querySelector('button[type="submit"]').textContent = '新增記錄';
+        document.getElementById('editStatus').classList.add('hidden');
+      }
+      localStorage.setItem('cuttingRecords', JSON.stringify(records));
+      updateRecordList();
+      form.reset();
+    });
+
+    // 統計與頁面切換
+    function togglePage() {
+      const btn = document.getElementById('togglePageBtn');
+      if (mainPage.classList.contains('hidden')) {
+        mainPage.classList.remove('hidden');
+        statisticsPage.classList.add('hidden');
+        btn.textContent = '查看統計';
+        btn.classList.remove('bg-blue-500', 'hover:bg-blue-600', 'dark:bg-blue-500');
+        btn.classList.add('bg-green-500', 'hover:bg-green-600', 'dark:bg-accent-yellow', 'dark:hover:bg-accent-hover');
+        importActions.style.display = "inline-block";
+      } else {
+        mainPage.classList.add('hidden');
+        statisticsPage.classList.remove('hidden');
+        btn.textContent = '返回記錄系統';
+        btn.classList.remove('bg-custom-pink', 'hover:bg-custom-pink-dark');
+        btn.classList.add('bg-custom-pink', 'hover:bg-custom-pink-dark', 'dark:bg-accent-yellow', 'dark:hover:bg-accent-hover');
+        importActions.style.display = "none";
+        resetStatistics();
+      }
+    }
+
+    function resetStatistics() {
+      document.getElementById('modelSearch').value = '';
+      searchModel(true);
+    }
+
+    function generateStatisticsTable(filteredRecords) {
+      const hierarchicalStats = {};
+      filteredRecords.forEach(record => {
+        const { category, modelNumber, partNumber, batchNumber } = record;
+        if (!hierarchicalStats[category]) hierarchicalStats[category] = {};
+        if (!hierarchicalStats[category][modelNumber]) hierarchicalStats[category][modelNumber] = {};
+        if (!hierarchicalStats[category][modelNumber][partNumber]) hierarchicalStats[category][modelNumber][partNumber] = {};
+        if (!hierarchicalStats[category][modelNumber][partNumber][batchNumber])
+          hierarchicalStats[category][modelNumber][partNumber][batchNumber] = 0;
+        hierarchicalStats[category][modelNumber][partNumber][batchNumber] += parseInt(record.quantity);
+      });
+      let resultHTML = `
+        <table class="w-full border-2 border-gray-300 dark:border-darkblue-700 border-collapse">
+          <thead>
+            <tr class="bg-gray-200 dark:bg-darkblue-700">
+              <th class="border-2 border-gray-300 dark:border-darkblue-700 p-2">類項</th>
+              <th class="border-2 border-gray-300 dark:border-darkblue-700 p-2">型號</th>
+              <th class="border-2 border-gray-300 dark:border-darkblue-700 p-2">料號</th>
+              <th class="border-2 border-gray-300 dark:border-darkblue-700 p-2">批次</th>
+              <th class="border-2 border-gray-300 dark:border-darkblue-700 p-2">批次數量</th>
+              <th class="border-2 border-gray-300 dark:border-darkblue-700 p-2">數量總計</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      Object.entries(hierarchicalStats).forEach(([category, models]) => {
+        Object.entries(models).forEach(([modelNumber, parts]) => {
+          Object.entries(parts).forEach(([partNumber, batches]) => {
+            const totalQuantity = Object.values(batches).reduce((sum, qty) => sum + qty, 0);
+            const batchDetails = Object.entries(batches)
+              .map(([batchNumber, qty]) => `
+                <tr>
+                  <td colspan="3" class="border p-2"></td>
+                  <td class="border p-2">${batchNumber}</td>
+                  <td class="border p-2 text-right">${qty}</td>
+                  <td class="border p-2"></td>
+                </tr>
+              `).join('');
+            resultHTML += `
+              <tr class="bg-blue-50 font-bold dark:bg-darkblue-700">
+                <td class="border p-2">${category}</td>
+                <td class="border p-2">${modelNumber}</td>
+                <td class="border p-2">${partNumber}</td>
+                <td class="border p-2" colspan="2"></td>
+                <td class="border p-2 text-right">${totalQuantity}</td>
+              </tr>
+              ${batchDetails}
+            `;
+          });
+        });
+      });
+      resultHTML += `
+          </tbody>
+        </table>
+      `;
+      return resultHTML;
+    }
+
+    function generateCategoryChart(filteredRecords) {
+      const categoryColors = {
+        '公料': 'bg-red-500 hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600',
+        '母料': 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600',
+        '上橫料': 'bg-green-500 hover:bg-green-600 dark:bg-green-500 dark:hover:bg-green-600',
+        '中橫料': 'bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600',
+        '下橫料': 'bg-purple-500 hover:bg-purple-600 dark:bg-purple-500 dark:hover:bg-purple-600',
+        '蓋板': 'bg-pink-500 hover:bg-pink-600 dark:bg-pink-500 dark:hover:bg-pink-600',
+        '配件': 'bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-600',
+        '常用配件': 'bg-orange-500 hover:bg-orange-600 dark:bg-orange-500 dark:hover:bg-orange-600',
+        '轉角': 'bg-teal-500 hover:bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-600',
+        '格柵': 'bg-cyan-500 hover:bg-cyan-600 dark:bg-cyan-500 dark:hover:bg-cyan-600',
+        '欄杆': 'bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-500 dark:hover:bg-emerald-600'
+      };
+      const categoryTotals = filteredRecords.reduce((acc, record) => {
+        const qty = parseInt(record.quantity) || 0;
+        acc[record.category] = (acc[record.category] || 0) + qty;
+        return acc;
+      }, {});
+      const sortedCategories = Object.keys(categoryTotals)
+        .sort((a, b) => CATEGORY_PRIORITY[a] - CATEGORY_PRIORITY[b]);
+      const maxQuantity = Math.max(...Object.values(categoryTotals));
+      const chartHeight = 300;
+      let chartHTML = `
+        <div class="mt-8">
+          <div class="flex justify-between items-center mb-8">
+            <button id="backAllBtn" onclick="resetStatistics()"
+                    style="background-color: #ec4899;"
+                    class="text-white px-4 py-2 rounded hover:opacity-90 dark:bg-accent-yellow dark:text-darkblue-900 dark:hover:bg-accent-hover hidden">
+              返回全部資料
+            </button>
+          </div>
+          <div class="relative flex items-end justify-between h-[${chartHeight}px] border-b-2 border-l-2 border-gray-300 dark:border-accent-yellow pt-8 pb-8 pl-4 pr-4" style="min-width: 400px;">
+            ${sortedCategories.map((category, index) => {
+        const height = (categoryTotals[category] / maxQuantity) * (chartHeight - 50);
+        const animationDelay = index * 100;
+        return `
+                <div class="flex flex-col items-center cursor-pointer" style="min-width: 60px;" onclick="filterByCategory('${category}')">
+                  <div class="relative w-12">
+                    <div class="absolute bottom-0 w-full ${categoryColors[category]} transition-all duration-500 transform opacity-0 translate-y-full animate-chart"
+                         style="height: ${height}px; animation-delay: ${animationDelay}ms;">
+                      <div class="absolute w-full text-center -top-6">
+                        <span class="text-gray-700 dark:text-gray-200 font-semibold">${categoryTotals[category]}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="text-sm font-medium">${category}</span>
+                  </div>
+                </div>
+              `;
+      }).join('')}
+          </div>
+        </div>
+      `;
+      const styleTag = `
+        <style>
+          @keyframes chartAnimation {
+            from { opacity: 0; transform: translateY(100%); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-chart { animation: chartAnimation 0.5s ease-out forwards; }
+        </style>
+      `;
+      return styleTag + chartHTML;
+    }
+
+    function initChartAnimation() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const charts = entry.target.querySelectorAll('.animate-chart');
+            charts.forEach(chart => {
+              chart.style.animationPlayState = 'running';
+            });
+          }
+        });
+      }, { threshold: 0.1 });
+      observer.observe(document.getElementById('statisticsResult'));
+    }
+
+    function searchModel(showAll = false) {
+      const modelSearch = document.getElementById('modelSearch').value.trim();
+
+      // 重設過濾記錄
+      if (showAll || !modelSearch) {
+        filteredRecords = records;
+      } else {
+        // 分割搜尋關鍵字，移除空白項目
+        const searchModels = modelSearch.split(',')
+          .map(m => m.trim())
+          .filter(m => m.length > 0);
+
+        // 過濾符合任一關鍵字的記錄
+        filteredRecords = records.filter(record => {
+          const modelPartNumber = `${record.modelNumber}-${record.partNumber}`.toLowerCase();
+          return searchModels.some(model =>
+            modelPartNumber.includes(model.toLowerCase())
+          );
+        });
+      }
+
+      // 檢查是否有找到記錄
+      if (filteredRecords.length === 0) {
+        statisticsResult.innerHTML = '<p class="text-red-500 font-semibold text-center py-4">找不到符合的記錄</p>';
+        document.getElementById('chartArea').innerHTML = '';
+        return;
+      }
+
+      // 更新統計表和圖表
+      statisticsResult.innerHTML = generateStatisticsTable(filteredRecords);
+      document.getElementById('chartArea').innerHTML = generateCategoryChart(filteredRecords);
+
+      // 重新初始化圖表動畫
+      setTimeout(initChartAnimation, 100);
+    }
+
+    function filterByCategory(category) {
+      const filtered = records.filter(record => record.category === category);
+      document.getElementById('backAllBtn').classList.remove('hidden');
+      statisticsResult.innerHTML = generateStatisticsTable(filtered);
+
+      // 改為顯示料號分布圖表
+      document.getElementById('chartArea').innerHTML = generatePartNumberChart(filtered, category);
+      setTimeout(initChartAnimation, 100);
+    }
+
+    function generatePartNumberChart(filteredRecords, category) {
+      // 計算每個料號的總數量
+      const partNumberTotals = filteredRecords.reduce((acc, record) => {
+        const key = `${record.modelNumber}-${record.partNumber}`;
+        acc[key] = (acc[key] || 0) + parseInt(record.quantity || 0);
+        return acc;
+      }, {});
+
+      // 排序料號（依數量從大到小）
+      const sortedPartNumbers = Object.entries(partNumberTotals)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 15);
+
+      const maxQuantity = Math.max(...Object.values(partNumberTotals));
+      const chartHeight = 300;
+
+      // 使用不同的顏色
+      const colors = [
+        'bg-blue-500 hover:bg-blue-600 dark:bg-accent-yellow dark:hover:bg-accent-hover',
+        'bg-indigo-500 hover:bg-indigo-600 dark:bg-blue-400 dark:hover:bg-blue-500',
+        'bg-violet-500 hover:bg-violet-600 dark:bg-blue-300 dark:hover:bg-blue-400',
+        'bg-purple-500 hover:bg-purple-600 dark:bg-blue-200 dark:hover:bg-blue-300',
+        'bg-fuchsia-500 hover:bg-fuchsia-600 dark:bg-blue-100 dark:hover:bg-blue-200'
+      ];
+
+      let chartHTML = `
+        <div class="mt-8">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">${category} - 料號數量分布</h2>
+          </div>
+          <div class="relative flex flex-col space-y-4 border-b-2 border-l-2 border-gray-300 dark:border-accent-yellow pt-8 pb-8 pl-4 pr-4">
+            ${sortedPartNumbers.map(([partNumber, quantity], index) => {
+        const width = (quantity / maxQuantity) * 100;
+        const animationDelay = index * 100;
+        const colorIndex = index % colors.length;
+        const isSmallBar = width < 15; // 當寬度小於15%時判定為小條形
+
+        return `
+                <div class="flex items-center space-x-4 min-h-[2rem]">
+                  <div class="w-32 text-right font-medium truncate" title="${partNumber}">
+                    ${partNumber}
+                  </div>
+                  <div class="flex-1 relative h-8 flex items-center">
+                    <div class="absolute h-full ${colors[colorIndex]} transition-all duration-500 transform opacity-0 translate-x-[-100%] animate-chart rounded"
+                        style="width: ${width}%; animation-delay: ${animationDelay}ms;">
+                    </div>
+                    ${isSmallBar
+            // 如果是小條形，數字顯示在條形外側
+            ? `<span class="absolute left-[${width}%] ml-2 text-gray-700 dark:text-gray-300 font-bold" 
+                              style="animation: fadeIn 0.5s ease-out ${animationDelay + 500}ms forwards; opacity: 0">
+                          ${quantity}
+                        </span>`
+            // 如果是大條形，數字顯示在條形內側
+            : `<span class="absolute left-[${width}%] transform -translate-x-[calc(100%+0.5rem)] text-white font-bold"
+                              style="animation: fadeIn 0.5s ease-out ${animationDelay + 500}ms forwards; opacity: 0">
+                          ${quantity}
+                        </span>`
+          }
+                  </div>
+                </div>
+              `;
+      }).join('')}
+          </div>
+        </div>
+      `;
+
+      // 修改動畫樣式，增加數字的淡入動畫
+      const styleTag = `
+        <style>
+          @keyframes chartAnimation {
+            from { opacity: 0; transform: translateX(-100%); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .animate-chart { animation: chartAnimation 0.5s ease-out forwards; }
+        </style>
+      `;
+
+      return styleTag + chartHTML;
+    }
+
+    // 處理搜尋框的 Enter 按鍵事件與輸入事件
+    function handleModelSearchEnter(event) {
+      // 如果按下的是 Enter 鍵或者任何按鍵後延遲執行搜尋
+      if (event.key === 'Enter' || event.type === 'keyup') {
+        searchModel();
+      }
+    }
+
+    function downloadExcel() {
+      const dataToExport = filteredRecords || records;
+      if (!dataToExport || dataToExport.length === 0) {
+        alert('沒有可供下載的數據');
+        return;
+      }
+      const excelData = dataToExport.map(record => ({
+        '類項': record.category,
+        '型號': record.modelNumber,
+        '料號': record.partNumber,
+        '批次': record.batchNumber,
+        '尺寸': record.size || '',
+        '數量': record.quantity,
+        '開料日期': record.recordDate,
+        '完成日期': record.completionDate || '',
+        '備註': record.remarks || ''
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "開料記錄");
+      const wscols = [
+        { wch: 10 },
+        { wch: 6 },
+        { wch: 6 },
+        { wch: 12 },
+        { wch: 6 },
+        { wch: 10 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 20 }
+      ];
+      worksheet['!cols'] = wscols;
+      XLSX.writeFile(workbook, `開料記錄_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+    // 回到頂部按鈕功能
+    function initBackToTop() {
+      const backToTop = document.getElementById('backToTop');
+
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+          backToTop.classList.remove('opacity-0', 'invisible');
+          backToTop.classList.add('opacity-100');
+        } else {
+          backToTop.classList.add('opacity-0', 'invisible');
+          backToTop.classList.remove('opacity-100');
+        }
+      });
+    }
+
+    function scrollToTop() {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+
+    // 在 DOMContentLoaded 事件中初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      initDarkMode();
+      initChartAnimation();
+      initBackToTop();
+      updateRecordList();
+    });
+  </script>
+</body>
+
+</html>
